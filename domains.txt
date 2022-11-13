@@ -1,0 +1,4 @@
+d_id,domain
+1,azure
+2,abinitio
+3,sql
