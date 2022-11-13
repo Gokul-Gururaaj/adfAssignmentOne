@@ -1,0 +1,9 @@
+{
+	"name": "gokulazuredf",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "e2d86283-d2f9-40ad-8eb6-84a0528a20f0",
+		"tenantId": "d98e16c4-4ec4-4b35-ad39-b3d3da3e4972"
+	}
+}

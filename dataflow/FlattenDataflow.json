@@ -1,0 +1,60 @@
+{
+	"name": "FlattenDataflow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_src_flatten",
+						"type": "DatasetReference"
+					},
+					"name": "JsonFormatFile"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sink_flatten",
+						"type": "DatasetReference"
+					},
+					"name": "FlattenedFile"
+				}
+			],
+			"transformations": [
+				{
+					"name": "FlateningSkillColumn"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          contact as (landline as integer, mobile as integer),",
+				"          name as string,",
+				"          skills as string[]",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'arrayOfDocuments',",
+				"     partitionBy('hash', 1)) ~> JsonFormatFile",
+				"JsonFormatFile foldDown(unroll(skills),",
+				"     mapColumn(",
+				"          skills,",
+				"          name",
+				"     ),",
+				"     partitionBy('hash', 1),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> FlateningSkillColumn",
+				"FlateningSkillColumn sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['FlattenedFile'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> FlattenedFile"
+			]
+		}
+	}
+}

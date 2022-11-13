@@ -1,0 +1,88 @@
+{
+	"name": "JoinDataflow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_src1_join",
+						"type": "DatasetReference"
+					},
+					"name": "bill"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_src2_join",
+						"type": "DatasetReference"
+					},
+					"name": "prodPriceList"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sink_join",
+						"type": "DatasetReference"
+					},
+					"name": "BillList"
+				}
+			],
+			"transformations": [
+				{
+					"name": "billing"
+				},
+				{
+					"name": "RequiredDetails"
+				},
+				{
+					"name": "DerivingPriceForTheQTY"
+				},
+				{
+					"name": "TotalPriceForEachBill"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          bill_id as short,",
+				"          prod_id as short,",
+				"          name as string,",
+				"          quantity as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> bill",
+				"source(output(",
+				"          prod_id as short,",
+				"          name as string,",
+				"          price as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> prodPriceList",
+				"bill, prodPriceList join(bill@prod_id == prodPriceList@prod_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> billing",
+				"billing select(skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RequiredDetails",
+				"RequiredDetails derive(priceWithQTY = (quantity*price)) ~> DerivingPriceForTheQTY",
+				"DerivingPriceForTheQTY aggregate(groupBy(bill_id),",
+				"     Total_Bill_Price = sum(priceWithQTY),",
+				"     partitionBy('hash', 1)) ~> TotalPriceForEachBill",
+				"TotalPriceForEachBill sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['List of the bills'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> BillList"
+			]
+		}
+	}
+}

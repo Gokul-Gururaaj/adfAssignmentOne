@@ -1,0 +1,90 @@
+{
+	"name": "LookupDataflow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_src1_lookup",
+						"type": "DatasetReference"
+					},
+					"name": "bill"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_src2_lookup",
+						"type": "DatasetReference"
+					},
+					"name": "prdctPriceList"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ListOfBills",
+						"type": "DatasetReference"
+					},
+					"name": "ListOfBills"
+				}
+			],
+			"transformations": [
+				{
+					"name": "BillingLookup"
+				},
+				{
+					"name": "RequiredDetails"
+				},
+				{
+					"name": "DerivingPriceWithQTY"
+				},
+				{
+					"name": "TotalPriceForEachBill"
+				},
+				{
+					"name": "AddingSurrogateKey"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          bill_id as short,",
+				"          prod_id as short,",
+				"          name as string,",
+				"          quantity as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> bill",
+				"source(output(",
+				"          prod_id as short,",
+				"          name as string,",
+				"          price as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> prdctPriceList",
+				"bill, prdctPriceList lookup(bill@prod_id == prdctPriceList@prod_id,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> BillingLookup",
+				"BillingLookup select(skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RequiredDetails",
+				"RequiredDetails derive(PriceWithQTY = (quantity*price)) ~> DerivingPriceWithQTY",
+				"DerivingPriceWithQTY aggregate(groupBy(bill_id),",
+				"     Total_Bill_Price = sum(PriceWithQTY)) ~> TotalPriceForEachBill",
+				"TotalPriceForEachBill keyGenerate(output({S.No.} as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> AddingSurrogateKey",
+				"AddingSurrogateKey sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['ListOfBills'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> ListOfBills"
+			]
+		}
+	}
+}

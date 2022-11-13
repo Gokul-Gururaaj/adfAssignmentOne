@@ -1,0 +1,69 @@
+{
+	"name": "row_merger_data_flow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_src_merger",
+						"type": "DatasetReference"
+					},
+					"name": "sourceForMerging"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sink_merger",
+						"type": "DatasetReference"
+					},
+					"name": "sinkForMerging"
+				}
+			],
+			"transformations": [
+				{
+					"name": "skillMerger"
+				},
+				{
+					"name": "derivedColumn"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as short,",
+				"          student_name as string,",
+				"          age as short,",
+				"          gender as string,",
+				"          skills as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> sourceForMerging",
+				"sourceForMerging aggregate(groupBy(id),",
+				"     skills = collect(skills),",
+				"          age = first(age),",
+				"          gender = first(gender),",
+				"          student_name = first(student_name)) ~> skillMerger",
+				"skillMerger derive(skills = replace(replace(replace(toString(skills),'[',''),'\"',''),']','')) ~> derivedColumn",
+				"derivedColumn sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['merged_student_skills'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          skills,",
+				"          age,",
+				"          gender,",
+				"          student_name",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> sinkForMerging"
+			]
+		}
+	}
+}

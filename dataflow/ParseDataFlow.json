@@ -1,0 +1,75 @@
+{
+	"name": "ParseDataFlow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_src_parse",
+						"type": "DatasetReference"
+					},
+					"name": "FileWithFormattedData"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sink_parse",
+						"type": "DatasetReference"
+					},
+					"name": "ParsedFile"
+				}
+			],
+			"transformations": [
+				{
+					"name": "ParsingSkillColumn"
+				},
+				{
+					"name": "ParsingPhoneColumn"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          name as string,",
+				"          gender as string,",
+				"          age as integer,",
+				"          skills as string,",
+				"          phonenos as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> FileWithFormattedData",
+				"FileWithFormattedData parse(skills = skills ? (skill1 as string,",
+				"          skill2 as string),",
+				"     format: 'delimited',",
+				"     columnNamesAsHeader: false,",
+				"     columnDelimiter: '|',",
+				"     nullValue: '') ~> ParsingSkillColumn",
+				"ParsingSkillColumn parse(phonenos = phonenos ? (main as string,",
+				"          aleternate as string),",
+				"     format: 'json',",
+				"     documentForm: 'singleDocument') ~> ParsingPhoneColumn",
+				"ParsingPhoneColumn sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['ParsedFile'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          name,",
+				"          gender,",
+				"          age,",
+				"          skill1 = skills.skill1,",
+				"          skill2 = skills.skill2,",
+				"          main = phonenos.main,",
+				"          aleternate = phonenos.aleternate",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> ParsedFile"
+			]
+		}
+	}
+}

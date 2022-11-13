@@ -1,0 +1,136 @@
+{
+	"name": "SwitchPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Switch",
+				"type": "Switch",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@pipeline().parameters.choice",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "Delete",
+							"activities": [
+								{
+									"name": "Deletes a file",
+									"type": "Delete",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_delete",
+											"type": "DatasetReference"
+										},
+										"logStorageSettings": {
+											"linkedServiceName": {
+												"referenceName": "AzureDataLakeStorage1",
+												"type": "LinkedServiceReference"
+											}
+										},
+										"enableLogging": true,
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "Alert",
+							"activities": [
+								{
+									"name": "Execute Email-Alert Pipeline",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "email-alerter-pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true
+									}
+								}
+							]
+						},
+						{
+							"value": "Set",
+							"activities": [
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "unknown",
+										"value": "unknown_value"
+									}
+								}
+							]
+						},
+						{
+							"value": "Append",
+							"activities": [
+								{
+									"name": "Append variable1",
+									"type": "AppendVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "teams",
+										"value": "\"wi\""
+									}
+								}
+							]
+						}
+					],
+					"defaultActivities": [
+						{
+							"name": "Waits for 3 seconds",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 3
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"choice": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"unknown": {
+				"type": "String"
+			},
+			"teams": {
+				"type": "Array",
+				"defaultValue": [
+					"ind",
+					"aus"
+				]
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-11-10T10:46:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

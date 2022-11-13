@@ -1,0 +1,64 @@
+{
+	"name": "RemovingDuplicateRows",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_source_removing_dup_rows",
+						"type": "DatasetReference"
+					},
+					"name": "FileWithDuplicates"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sink_duplicate_row_remover",
+						"type": "DatasetReference"
+					},
+					"name": "FileWithOutDuplicates"
+				}
+			],
+			"transformations": [
+				{
+					"name": "duplicaterowremover"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as short,",
+				"          student_name as string,",
+				"          age as short,",
+				"          gender as string,",
+				"          dept as string,",
+				"          sec as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> FileWithDuplicates",
+				"FileWithDuplicates aggregate(groupBy(id),",
+				"     each(match(name!='id'), $$ = first($$)),",
+				"     partitionBy('hash', 1)) ~> duplicaterowremover",
+				"duplicaterowremover sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['stuent_attendance_list_without_duplicates'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          student_name,",
+				"          age,",
+				"          gender,",
+				"          dept,",
+				"          sec",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> FileWithOutDuplicates"
+			]
+		}
+	}
+}

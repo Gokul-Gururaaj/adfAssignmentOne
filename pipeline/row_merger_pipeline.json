@@ -1,0 +1,34 @@
+{
+	"name": "row_merger_pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "row_merger_data_flow",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "row_merger_data_flow",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2022-11-08T09:58:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

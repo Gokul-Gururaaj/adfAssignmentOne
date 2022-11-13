@@ -1,0 +1,135 @@
+{
+	"name": "TransformationOneDataFlow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "TransformationOneSource",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "TransformationOneSink",
+						"type": "DatasetReference"
+					},
+					"name": "PassedStudentsList"
+				},
+				{
+					"dataset": {
+						"referenceName": "TransformationOneSink",
+						"type": "DatasetReference"
+					},
+					"name": "ToppersList"
+				},
+				{
+					"dataset": {
+						"referenceName": "TransformationOneSink",
+						"type": "DatasetReference"
+					},
+					"name": "FailuresList"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "split1"
+				},
+				{
+					"name": "AveragingMarks"
+				},
+				{
+					"name": "GivingRank"
+				},
+				{
+					"name": "SortedAccordingToID"
+				},
+				{
+					"name": "Toppers"
+				},
+				{
+					"name": "AverageMarks"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as short,",
+				"          name as string,",
+				"          age as short,",
+				"          dept as string,",
+				"          sub1 as short,",
+				"          sub2 as short,",
+				"          sub3 as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 select(mapColumn(",
+				"          id,",
+				"          dept,",
+				"          sub1,",
+				"          sub2,",
+				"          sub3",
+				"     ),",
+				"     partitionBy('hash', 1),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 split((sub1>49)&&(sub2>49)&&(sub3>49),",
+				"     disjoint: false,",
+				"     partitionBy('hash', 1)) ~> split1@(passedouts, failures)",
+				"split1@passedouts derive(average_marks = (sub1+sub2+sub3)/3,",
+				"     partitionBy('hash', 1)) ~> AveragingMarks",
+				"AveragingMarks rank(desc(average_marks, true),",
+				"     output(Rank as long),",
+				"     partitionBy('hash', 1)) ~> GivingRank",
+				"GivingRank sort(asc(id, true),",
+				"     partitionBy('hash', 1)) ~> SortedAccordingToID",
+				"SortedAccordingToID filter(average_marks>80) ~> Toppers",
+				"split1@failures derive(Avg = (sub1+sub2+sub3)/3,",
+				"     partitionBy('hash', 1)) ~> AverageMarks",
+				"SortedAccordingToID sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['Passed_Students_List'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> PassedStudentsList",
+				"Toppers sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['ToppersList'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> ToppersList",
+				"AverageMarks sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['FailuresList'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          dept,",
+				"          sub1,",
+				"          sub2,",
+				"          sub3,",
+				"          Avg",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> FailuresList"
+			]
+		}
+	}
+}
